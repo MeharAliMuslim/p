@@ -12,41 +12,48 @@ if (isset($_POST['item_name']) && isset($_FILES['image'])) {
     $_available_stock = $_POST['available_stock'];
     $_summary = $_POST['summary'];
 
-    // image move and saving into database  
+    $stmt = $con->prepare("INSERT INTO `product` (`item_name`, `price`, `purchased_date`, `reserved`, `sold`, `available_stock`, `summary`) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssssss", $_name, $_price, $_pdate, $_reserved, $_sold, $_available_stock, $_summary);
 
-    $filename = $_FILES['image']['name'];
-    $tempname = $_FILES['image']['tmp_name'];
-    $targetDirectory = "image/";
-    $targetPath = $targetDirectory . $filename;
-    $extension = pathinfo($filename, PATHINFO_EXTENSION);
-    $allowTypes = array('jpg','png','jpeg','gif');
-
-    // Check if the file extension is jpg
-    if (!in_array($extension,$allowTypes)) {
-        echo "<script>alert('Your file extension must be .jpg, PNG, jepg, gif');</script>";
+    if ($stmt->execute()) {
+        echo "<script>alert('data successfully');</script>";
     } else {
-        // Create the target directory if it doesn't exist
-        if (!is_dir($targetDirectory)) {
-            mkdir($targetDirectory, 07777, true);
-        }
+        echo "<script>alert('Failed to upload data.');</script>";
+    }
+    $stmt->close();
 
-        // Move the uploaded (temporary) file to the specified destination
-        if (move_uploaded_file($tempname, $targetPath)) {
-            // Insert the file path into the database using prepared statement
-            $stmt = $con->prepare("INSERT INTO `product` (`item_name`, `price`, `purchased_date`, `reserved`, `sold`, `available_stock`, `summary`, `image`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("ssssssss", $_name, $_price, $_pdate, $_reserved, $_sold, $_available_stock, $_summary, $targetPath);
+    $resultid = mysqli_insert_id($con);
 
-            if ($stmt->execute()) {
-                echo "<script>alert('Image uploaded successfully');</script>";
-            } else {
-                echo "<script>alert('Failed to upload file.');</script>";
+    foreach ($_FILES['image']['name'] as $key => $value) {
+        $filename = $_FILES['image']['name'][$key];
+        $tempname = $_FILES['image']['tmp_name'][$key];
+        $size = $_FILES['image']['size'][$key];
+        $targetDirectory = "image/";
+        $targetPath = $targetDirectory . $filename;
+        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+        $allowTypes = array('jpg', 'png', 'jpeg', 'gif');
+        // Check if the file extension is valid
+        if (!in_array($extension, $allowTypes)) {
+            echo "<script>alert('Your file extension must be .jpg, .png, .jpeg, or .gif');</script>";
+        } else {
+            // Create the target directory if it doesn't exist
+            if (!is_dir($targetDirectory)) {
+                mkdir($targetDirectory, 0777, true);
             }
-            $stmt->close();
+            // Move the uploaded (temporary) file to the specified destination
+            if (move_uploaded_file($tempname, $targetPath)) {
+                // Insert the file path into the database using prepared statement
+                $sql = $con->prepare("INSERT  INTO `images`(`size`,`p_path`,`extension`,`inv_id`)values(?,?,?,?)");
+                $sql->bind_param("ssss", $size, $targetPath, $extension, $resultid);
+                if ($sql->execute()) {
+                    echo "<script>alert('Image uploaded successfully');</script>";
+                } else {
+                    echo "<script>alert('Failed to upload file.');</script>";
+                }
+                $sql->close();
+            }
         }
     }
-
-
-
 }
 ?>
 <!doctype html>
@@ -62,6 +69,7 @@ if (isset($_POST['item_name']) && isset($_FILES['image'])) {
     <link rel="stylesheet" href="stylesheet/index_style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
+        <script src="valid.js"></script>
 
 </head>
 
@@ -79,7 +87,7 @@ if (isset($_POST['item_name']) && isset($_FILES['image'])) {
                             <h3>Create Stock Form</h3>
                             <p>Fill in the data below.</p>
                             <form method="POST" enctype="multipart/form-data"
-                                action="http://localhost/inventory/index1.php">
+                                action="http://localhost/inventory/index1.php" onclick="return validform()">
                                 <div class = "fp">
                                     
                                     <input class="form-control" type="text" required name="item_name"
@@ -110,7 +118,7 @@ if (isset($_POST['item_name']) && isset($_FILES['image'])) {
                                         placeholder="Summary">
                                 </div>
                                 <div class = "fp">
-                                    <input class="form-control" type="file" required name="image">
+                                    <input class="form-control" type="file" multiple required name="image[]">
                                 </div>
                                 <div class = "fp">
                                     <button class="form-control" type="submit" required value="upload">Submit</button>

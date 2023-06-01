@@ -5,46 +5,101 @@ $limit = 20;
 $page_number = isset($_GET['page']) ? $_GET['page'] : 1;
 $initial_page = ($page_number - 1) * $limit;
 
-$sql = "SELECT * FROM product";
+$sql = "SELECT product.id, images.id, images.p_path
+        FROM product
+        INNER JOIN images
+        ON product.id = images.Inv_id;";
+
+// $image = $_FILES['images.p_path'];
+
 $result = mysqli_query($con, $sql);
-$total_rows = mysqli_num_rows($result);
-$total_pages = ceil($total_rows / $limit);
+
 
 $sql = "SELECT * FROM product LIMIT $initial_page, $limit";
-$result = mysqli_query($con, $sql);
-?>
 
-<!DOCTYPE html>
-<html>
+if ($result === false) {
+    // Query execution failed, handle the error
+    echo "Error: " . mysqli_error($con);
+    // You may also consider redirecting the user or showing a user-friendly error message
+} else {
+
+    $total_rows = mysqli_num_rows($result);
+    $total_pages = ceil($total_rows / $limit);
+}
+
+
+
+$result = mysqli_query($con, $sql);
+
+$sql = "SELECT p_path, inv_id FROM images";
+
+$i_result = mysqli_query($con, $sql);
+
+$image = array();
+
+while ($row1 = $i_result->fetch_assoc()) {
+    $pid = $row1["inv_id"];
+    $imagePath = $row1["p_path"];
+    $image[$pid][] = $imagePath;
+}
+?>
+<!doctype html>
+<html lang="en">
 
 <head>
-    <title>View Page</title>
-    <link rel="stylesheet" href="stylesheet/view_style.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+    <title>Test</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS v5.2.1 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
+    <link rel="stylesheet" href="stylesheet/app.bundle.css">
+    <link rel="stylesheet" href="stylesheet/vendors.bundle.css">
+
 </head>
 
 <body>
-    <div class="container">
-        <h2>Product</h2>
-        <a class="btn btn-info" href="index1.php">Create</a>
-        <?php
-        include("csv.php");
-        ?>
-        <button id="myBtn">Open Modal</button>
+    <header>
+        <!-- place navbar here -->
+    </header>
+    <main>
 
-        <!-- The Modal -->
-        <div id="myModal" class="modal">
 
-            <!-- Modal content -->
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <p><input type="file"></p>
+        <div class="container">
+            <h2>Product</h2>
+            <a class="btn btn-info" href="index1.php">Create</a>
+            <?php
+            include("csv.php");
+            ?>
+            <button class="btn btn-info" id="myBtn">Upload Csv File</button>
+
+            <!-- The Modal -->
+            <div id="myModal" class="modal">
+
+                <!-- Modal content -->
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <table>
+                        <form action="" method="post" enctype="multipart/form-data">
+                            <th>
+                                <div>
+                                    <input class="btn btn-info" value="Only csv!!" type="file" name="csv_file"
+                                        accept=".csv" required>
+                                </div>
+                            </th>
+                            <th>
+                                <div>
+                                    <button class="btn btn-info" type="submit" name="upload">Upload</button>
+                                </div>
+                            </th>
+                        </form>
+                    </table>
+                </div>
+
             </div>
-
         </div>
-
-        <label class="btn btn-info" for="abc">Import Csv File </label>
         <!-- <a class="btn btn-info" href="csv.php" type="file" >Import only CSV</a> -->
         <table class="table" id="product">
             <thead>
@@ -62,26 +117,102 @@ $result = mysqli_query($con, $sql);
             </thead>
             <tbody>
                 <?php
-                while ($row = mysqli_fetch_assoc($result)) {
-                    echo '<tr>';
-                    echo '<td>' . $row['id'] . '</td>';
-                    echo '<td>' . $row['item_name'] . '</td>';
-                    echo '<td>' . $row['price'] . '</td>';
-                    echo '<td>' . $row['reserved'] . '</td>';
-                    echo '<td>' . $row['sold'] . '</td>';
-                    echo '<td>' . $row['available_stock'] . '</td>';
-                    echo '<td>' . $row['summary'] . '</td>';
-                    echo '<td><img style="width: 240px; height: 120px; border: 1px solid black" src="' . $row['image'] . '"></td>';
-                    echo '<td>
-                    <a class="btn btn-info" href="update.php?id=' . $row['id'] . '">Edit</a>
-                    <a class="btn btn-danger" href="delete.php?id=' . $row['id'] . '">Delete</a>
-                </td>';
-                    echo '</tr>';
+                if ($result->num_rows > 0) {
+
+                    while ($row = mysqli_fetch_assoc($result)) {
+                        echo '<tr>';
+                        echo '<td>' . $row['id'] . '</td>';
+                        echo '<td>' . $row['item_name'] . '</td>';
+                        echo '<td>' . $row['price'] . '</td>';
+                        echo '<td>' . $row['reserved'] . '</td>';
+                        echo '<td>' . $row['sold'] . '</td>';
+                        echo '<td>' . $row['available_stock'] . '</td>';
+                        echo '<td>' . $row['summary'] . '</td>';
+                        ?>
+                        <td>
+                            <div class="panel-container show">
+                                <div class="panel-content">
+                                    <div class="frame-wrap">
+                                        <button type="button" class="btn btn-lg btn-default" data-toggle="modal"
+                                            data-target="#example-modal-fullscreen-<?= $row['id'] ?>">Modal Fullscreen</button>
+                                    </div>
+                                    <?php
+                                    if (isset($image[$row['id']])) {
+                                        $slides = $image[$row['id']]; // Get the slides array
+                                        ?>
+                                        <!-- Fullscreen Modal -->
+                                        <div class="modal fade modal-fullscreen" id="example-modal-fullscreen-<?= $row['id'] ?>"
+                                            tabindex="-1" role="dialog" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered" role="document">
+                                                <div class="modal-content h-100 border-0 shadow-0 bg-fusion-800">
+                                                    <button type="button"
+                                                        class="close p-sm-2 p-md-4 text-white fs-xxl position-absolute pos-right mr-sm-2 mt-sm-1 z-index-space"
+                                                        data-dismiss="modal" aria-label="Close">
+                                                        <span aria-hidden="true"><i class="fal fa-times"></i></span>
+                                                    </button>
+                                                    <div class="modal-body p-0">
+                                                        <div id="example-carousel-fullscreen-<?= $row['id'] ?>"
+                                                            class="carousel slide" data-ride="carousel">
+                                                            <ol class="carousel-indicators">
+                                                                <?php
+                                                                foreach ($slides as $index => $slide) {
+                                                                    $activeClass = ($index === 0) ? 'active' : '';
+                                                                    ?>
+                                                                    <li data-target="#example-carousel-fullscreen-<?= $row['id'] ?>"
+                                                                        data-slide-to="<?= $index ?>" class="<?= $activeClass ?>"></li>
+                                                                    <?php
+                                                                }
+                                                                ?>
+                                                            </ol>
+                                                            <div class="carousel-inner">
+                                                                <?php
+                                                                foreach ($slides as $index => $slide) {
+                                                                    $activeClass = ($index === 0) ? 'active' : '';
+                                                                    ?>
+                                                                    <div class="carousel-item <?= $activeClass ?>">
+                                                                        <img class="d-block w-100" src="<?= $slide ?>"
+                                                                            style="width: 100%" alt="Slide <?= $index + 1 ?>">
+                                                                    </div>
+                                                                    <?php
+                                                                }
+                                                                ?>
+                                                            </div>
+                                                            <a class="carousel-control-prev"
+                                                                href="#example-carousel-fullscreen-<?= $row['id'] ?>" role="button"
+                                                                data-slide="prev">
+                                                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                                <span class="sr-only">Previous</span>
+                                                            </a>
+                                                            <a class="carousel-control-next"
+                                                                href="#example-carousel-fullscreen-<?= $row['id'] ?>" role="button"
+                                                                data-slide="next">
+                                                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                                <span class="sr-only">Next</span>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <?php
+                                    }
+                                    ?>
+                                </div>
+                            </div>
+                        </td>
+                        <?php
+                        echo '<td> 
+                            <a class="btn btn-info" href="update.php?id=' . $row['id'] . '">Edit</a>
+                            <a class="btn btn-danger" href="delete.php?id=' . $row['id'] . '">Delete</a>
+                            </td>';
+                        echo '</tr>';
+                    }
                 }
                 ?>
             </tbody>
         </table>
         <?php
+        // $result = mysqli_stmt_insert_id($con);
         if ($total_pages > 1) {
             echo '<div class="pagination">';
 
@@ -110,13 +241,23 @@ $result = mysqli_query($con, $sql);
 
             echo '</div>';
         }
-
         ?>
-    </div>
+        </div>
+    </main>
+    <footer>
+        <!-- place footer here -->
+    </footer>
+    <!-- Bootstrap JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"
+        integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous">
+        </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.min.js"
+        integrity="sha384-7VPbUDkoPSGFnVtYi0QogXtr74QeVeeIs99Qfg5YCF+TidwNdjvaKZX19NZ/e6oz" crossorigin="anonymous">
+        </script>
 </body>
-<script src="https://code.jquery.com/jquery-3.7.0.js" integrity="sha256-JlqSTELeR4TLqP0OG9dxM7yDPqX1ox/HfgiSLBj8+kM="
-    crossorigin="anonymous"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.js"></script>
+<script src="js/app.bundle.js"></script>
+<script src="js/vendors.bundle.js"></script>
 <script>
     // Get the modal
     var modal = document.getElementById("myModal");
@@ -145,4 +286,4 @@ $result = mysqli_query($con, $sql);
     }
 </script>
 
-</html>`
+</html>

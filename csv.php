@@ -1,4 +1,3 @@
-
 <?php
 require "config.php";
 
@@ -73,10 +72,3 @@ if (isset($_POST['upload'])) {
 }
 ?>
 
-<div style = "display:none">
-    <h2>CSV File Upload</h2>
-<form action="csv.php" method="post" enctype="multipart/form-data">
-    <input type="file" id="abc" name="csv_file">
-    <input type="submit" name="upload" value="Upload">
-</form>
-</div>

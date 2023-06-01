@@ -155,7 +155,7 @@ if (isset($_GET['id'])) {
                                                     value="<?php echo $_summary ?>">
                                             </div>
                                             <div class="fp">
-                                                <input class="form-control" type="file" name="image"
+                                                <input class="form-control" type="file" multiple name="image"
                                                     value="<?php echo $_image ?>">
                                             </div>
                                             <div class="fp">
